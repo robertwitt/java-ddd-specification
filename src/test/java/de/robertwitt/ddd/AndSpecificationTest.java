@@ -5,7 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.stream.Stream;
+
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import de.robertwitt.ddd.impl.EvenIntegerSpecification;
 import de.robertwitt.ddd.impl.NonNegativeIntegerSpecification;
@@ -18,48 +23,78 @@ public class AndSpecificationTest {
   private AndSpecification<Integer> cut = new AndSpecification<>(NON_NEGATIVE, EVEN);
 
   @Test
-  void testIsSatisfiedBy() {
+  void isSatisfiedByValidValue() {
     assertTrue(cut.isSatisfiedBy(4));
-    assertFalse(cut.isSatisfiedBy(-2));
-    assertFalse(cut.isSatisfiedBy(3));
-    assertFalse(cut.isSatisfiedBy(0));
+  }
+
+  @ParameterizedTest
+  @MethodSource("invalidValues")
+  void isUnsatisfiedByInvalidValue(Integer value) {
+    assertFalse(cut.isSatisfiedBy(value));
   }
 
   @Test
-  void testThrowIfUnsatisfiedBy() {
+  void doesNotThrowForSatisfyingValue() {
     assertDoesNotThrow(() -> cut.throwIfUnsatisfiedBy(4));
-    assertThrows(IllegalArgumentException.class, () -> cut.throwIfUnsatisfiedBy(-2));
-    assertThrows(IllegalArgumentException.class, () -> cut.throwIfUnsatisfiedBy(3));
-    assertThrows(IllegalArgumentException.class, () -> cut.throwIfUnsatisfiedBy(0));
   }
 
-  @Test
-  void testLeftIsNull() {
-    var cut = new AndSpecification<>(null, EVEN);
-
-    assertTrue(cut.isSatisfiedBy(4));
-    assertTrue(cut.isSatisfiedBy(-2));
-    assertFalse(cut.isSatisfiedBy(3));
-    assertTrue(cut.isSatisfiedBy(0));
-
-    assertDoesNotThrow(() -> cut.throwIfUnsatisfiedBy(4));
-    assertDoesNotThrow(() -> cut.throwIfUnsatisfiedBy(-2));
-    assertThrows(IllegalArgumentException.class, () -> cut.throwIfUnsatisfiedBy(3));
-    assertDoesNotThrow(() -> cut.throwIfUnsatisfiedBy(0));
+  @ParameterizedTest
+  @MethodSource("invalidValues")
+  void throwsForUnsatisfyingValue(Integer value) {
+    assertThrows(IllegalArgumentException.class, () -> cut.throwIfUnsatisfiedBy(value));
   }
 
-  @Test
-  void testRightIsNull() {
-    var cut = new AndSpecification<>(NON_NEGATIVE, null);
-
-    assertTrue(cut.isSatisfiedBy(4));
-    assertFalse(cut.isSatisfiedBy(-2));
-    assertTrue(cut.isSatisfiedBy(3));
-    assertFalse(cut.isSatisfiedBy(0));
-
-    assertDoesNotThrow(() -> cut.throwIfUnsatisfiedBy(4));
-    assertThrows(IllegalArgumentException.class, () -> cut.throwIfUnsatisfiedBy(-2));
-    assertDoesNotThrow(() -> cut.throwIfUnsatisfiedBy(3));
-    assertThrows(IllegalArgumentException.class, () -> cut.throwIfUnsatisfiedBy(0));
+  private static Stream<Integer> invalidValues() {
+    return Stream.of(-2, 3, 0);
   }
+
+  @Nested
+  class WhenLeftIsNull {
+
+    private AndSpecification<Integer> cut = new AndSpecification<>(null, EVEN);
+
+    @ParameterizedTest
+    @MethodSource("validValues")
+    void isSatisfiedForValidValue(Integer value) {
+      assertTrue(cut.isSatisfiedBy(value));
+    }
+
+    private static Stream<Integer> validValues() {
+      return Stream.of(4, -2, 0);
+    }
+
+    @Test
+    void isUnsatisfiedByInvalidValue() {
+      assertFalse(cut.isSatisfiedBy(3));
+    }
+
+  }
+
+  @Nested
+  class WhenRightIsNull {
+
+    AndSpecification<Integer> cut = new AndSpecification<>(NON_NEGATIVE, null);
+
+    @ParameterizedTest
+    @MethodSource("validValues")
+    void isSatisfiedForValidValue(Integer value) {
+      assertTrue(cut.isSatisfiedBy(value));
+    }
+
+    private static Stream<Integer> validValues() {
+      return Stream.of(4, 3);
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidValues")
+    void isSatisfiedForInalidValue(Integer value) {
+      assertFalse(cut.isSatisfiedBy(value));
+    }
+
+    private static Stream<Integer> invalidValues() {
+      return Stream.of(-2, 0);
+    }
+
+  }
+
 }
