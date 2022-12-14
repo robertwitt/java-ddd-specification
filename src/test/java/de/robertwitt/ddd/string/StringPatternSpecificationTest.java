@@ -7,28 +7,50 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class StringPatternSpecificationTest {
 
-  @Test
-  void testCreation() {
-    assertDoesNotThrow(() -> new StringPatternSpecification("[a]+$"));
-    assertDoesNotThrow(() -> new StringPatternSpecification(""));
-    assertThrows(PatternSyntaxException.class, () -> new StringPatternSpecification("[a}"));
+  private StringPatternSpecification cut = new StringPatternSpecification("^[a-z]+$");
 
+  @Test
+  void creationSucceedsWithValidRegex() {
+    assertDoesNotThrow(() -> new StringPatternSpecification("[a]+$"));
+  }
+
+  @Test
+  void creationSucceedsWithEmptyStringAsRegex() {
+    assertDoesNotThrow(() -> new StringPatternSpecification(""));
+  }
+
+  @Test
+  void creationFailsWithInvalidRegex() {
+    assertThrows(PatternSyntaxException.class, () -> new StringPatternSpecification("[a}"));
+  }
+
+  @Test
+  void creationFailsWithNullAsPattern() {
     Pattern nullPattern = null;
     assertThrows(NullPointerException.class, () -> new StringPatternSpecification(nullPattern));
   }
 
   @Test
-  void testIsSatisfiedBy() {
-    var cut = new StringPatternSpecification("^[a-z]+$");
+  void isSatisfiedByValidValue() {
     assertTrue(cut.isSatisfiedBy("hello"));
-    assertFalse(cut.isSatisfiedBy("Hello"));
-    assertFalse(cut.isSatisfiedBy(""));
-    assertFalse(cut.isSatisfiedBy(null));
+  }
+
+  @ParameterizedTest
+  @MethodSource("invalidValues")
+  void isUnsatisfiedByInvalidValues(String value) {
+    assertFalse(cut.isSatisfiedBy(value));
+  }
+
+  private static Stream<String> invalidValues() {
+    return Stream.of("Hello", "", null);
   }
 
 }
